@@ -1,0 +1,14 @@
+name: Beta Deploy
+
+on:
+  push:
+    paths:
+      - 'test_db/beta/**'
+      - '.github/workflows/beta-deploy.yml'
+  workflow_dispatch:
+
+jobs:
+  beta-deploy:
+    uses: ./.github/workflows/template-deploy.yml
+    with:
+      environments: '["beta"]'

@@ -1,0 +1,5 @@
+# Charlie Environment Configuration
+database_name: testdb_charlie
+port: 5434
+environment: testing
+version: 1.0.0

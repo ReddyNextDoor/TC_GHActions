@@ -1,0 +1,5 @@
+# Beta Environment Configuration
+database_name: testdb_beta
+port: 5433
+environment: staging
+version: 1.0.0

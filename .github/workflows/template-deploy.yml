@@ -1,0 +1,31 @@
+name: Template Deploy
+
+on:
+  workflow_call:
+    inputs:
+      environments:
+        required: true
+        type: string
+        description: "JSON array of environments to deploy"
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        environment: ${{ fromJson(inputs.environments) }}
+    
+    concurrency:
+      group: deploy-${{ matrix.environment }}
+      cancel-in-progress: false
+    
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      
+      - name: Deploy to ${{ matrix.environment }}
+        run: |
+          echo "🚀 Deploying to ${{ matrix.environment }}"
+          echo "📊 Database: testdb_${{ matrix.environment }}"
+          sleep 10  # Simulate deployment time
+          echo "✅ Deployment complete for ${{ matrix.environment }}"

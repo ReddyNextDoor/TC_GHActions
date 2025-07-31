@@ -1,0 +1,14 @@
+name: Alpha Deploy
+
+on:
+  push:
+    paths:
+      - 'test_db/alpha/**'
+      - '.github/workflows/alpha-deploy.yml'
+  workflow_dispatch:
+
+jobs:
+  alpha-deploy:
+    uses: ./.github/workflows/template-deploy.yml
+    with:
+      environments: '["alpha"]'

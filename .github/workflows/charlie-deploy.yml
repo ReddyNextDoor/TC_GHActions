@@ -1,0 +1,14 @@
+name: Charlie Deploy
+
+on:
+  push:
+    paths:
+      - 'test_db/charlie/**'
+      - '.github/workflows/charlie-deploy.yml'
+  workflow_dispatch:
+
+jobs:
+  charlie-deploy:
+    uses: ./.github/workflows/template-deploy.yml
+    with:
+      environments: '["charlie"]'

@@ -1,0 +1,14 @@
+name: Delta Deploy
+
+on:
+  push:
+    paths:
+      - 'test_db/delta/**'
+      - '.github/workflows/delta-deploy.yml'
+  workflow_dispatch:
+
+jobs:
+  delta-deploy:
+    uses: ./.github/workflows/template-deploy.yml
+    with:
+      environments: '["delta"]'

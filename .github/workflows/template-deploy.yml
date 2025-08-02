@@ -9,8 +9,47 @@ on:
         description: "JSON array of environments to deploy"
 
 jobs:
+  build:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        environment: ${{ fromJson(inputs.environments) }}
+    
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      
+      - name: Prepare build artifacts
+        run: |
+          echo "🔨 Building artifacts for ${{ matrix.environment }}"
+          echo "📦 Processing config for environment: ${{ matrix.environment }}"
+          
+          # Create build directory
+          mkdir -p build-artifacts/${{ matrix.environment }}
+          
+      - name: Package config artifact
+        run: |
+          # Copy and prepare config for deployment
+          cp test_db/${{ matrix.environment }}/config.yml build-artifacts/${{ matrix.environment }}/
+          
+          # Add build metadata
+          echo "# Build Information" >> build-artifacts/${{ matrix.environment }}/config.yml
+          echo "build_time: $(date -u +"%Y-%m-%dT%H:%M:%SZ")" >> build-artifacts/${{ matrix.environment }}/config.yml
+          echo "build_id: ${{ github.run_id }}" >> build-artifacts/${{ matrix.environment }}/config.yml
+          echo "commit_sha: ${{ github.sha }}" >> build-artifacts/${{ matrix.environment }}/config.yml
+          
+          echo "📦 Config artifact ready for ${{ matrix.environment }}"
+          
+      - name: Upload build artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: config-${{ matrix.environment }}
+          path: build-artifacts/${{ matrix.environment }}/config.yml
+          retention-days: 7
+
   deploy:
     runs-on: [self-hosted, linux, ARM64, a8bc952bca85]
+    needs: build
     strategy:
       matrix:
         environment: ${{ fromJson(inputs.environments) }}
@@ -20,22 +59,40 @@ jobs:
       cancel-in-progress: false
     
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
+      - name: Download build artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: config-${{ matrix.environment }}
+          path: ./artifacts/
       
       - name: Prepare deployment directory
         run: |
           echo "🚀 Deploying to ${{ matrix.environment }}"
           echo "📊 Database: testdb_${{ matrix.environment }}"
           
-          # Create deployment directory
-          mkdir -p /tmp/deployments/${{ matrix.environment }}
+          # Create deployment directory with versioning
+          DEPLOY_DIR="/tmp/deployments/${{ matrix.environment }}"
+          VERSION_DIR="${DEPLOY_DIR}/versions/$(date +%Y%m%d-%H%M%S)-${{ github.run_id }}"
+          
+          mkdir -p "$DEPLOY_DIR"
+          mkdir -p "$VERSION_DIR"
+          
+          echo "📁 Deployment directory: $DEPLOY_DIR"
+          echo "📁 Version directory: $VERSION_DIR"
           
       - name: Deploy config artifact
         run: |
-          # Copy config.yml to deployment location
-          cp test_db/${{ matrix.environment }}/config.yml /tmp/deployments/${{ matrix.environment }}/
-          echo "📦 Config deployed to /tmp/deployments/${{ matrix.environment }}/"
+          DEPLOY_DIR="/tmp/deployments/${{ matrix.environment }}"
+          VERSION_DIR="${DEPLOY_DIR}/versions/$(date +%Y%m%d-%H%M%S)-${{ github.run_id }}"
+          
+          # Deploy to versioned location
+          cp ./artifacts/config.yml "$VERSION_DIR/"
+          
+          # Update current deployment (replace existing)
+          cp ./artifacts/config.yml "$DEPLOY_DIR/config.yml"
+          
+          echo "📦 Config deployed to $DEPLOY_DIR/config.yml"
+          echo "💾 Version saved to $VERSION_DIR/config.yml"
           
       - name: Verify deployment
         run: |
@@ -44,15 +101,12 @@ jobs:
           cat /tmp/deployments/${{ matrix.environment }}/config.yml
           echo "----------------------------------------"
           
-      - name: Create deployment artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: deployed-config-${{ matrix.environment }}
-          path: /tmp/deployments/${{ matrix.environment }}/config.yml
-          retention-days: 7
+          echo "📋 Available versions:"
+          ls -la /tmp/deployments/${{ matrix.environment }}/versions/ || echo "No previous versions"
           
       - name: Complete deployment
         run: |
-          sleep 5  # Simulate deployment time
+          sleep 3  # Simulate deployment time
           echo "✅ Deployment complete for ${{ matrix.environment }}"
-          echo "📍 Config available at: /tmp/deployments/${{ matrix.environment }}/config.yml"
+          echo "📍 Current config: /tmp/deployments/${{ matrix.environment }}/config.yml"
+          echo "📚 Versions: /tmp/deployments/${{ matrix.environment }}/versions/"

@@ -1,5 +1,6 @@
 # Alpha Environment Configuration
 database_name: testdb_alpha
 port: 5432
+
 environment: development
 version: 1.0.0

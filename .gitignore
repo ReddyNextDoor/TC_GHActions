@@ -1,2 +1,23 @@
+# Folder contents (if they contain sensitive data)
 azure_yamls/
 text_yamls/
+
+# Security: Prevent accidental commit of sensitive files
+.env
+.env.*
+*.key
+*.pem
+*.p12
+*.pfx
+secrets/
+config/secrets/
+
+# OS and IDE files
+.DS_Store
+.vscode/
+.idea/
+
+# Docker and build artifacts
+.docker/
+dist/
+build/

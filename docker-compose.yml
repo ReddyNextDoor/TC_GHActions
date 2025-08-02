@@ -1,0 +1,25 @@
+version: '3.8'
+
+services:
+  github-runner:
+    build: .
+    container_name: github-actions-runner
+    restart: unless-stopped
+    volumes:
+      - runner-data:/runner-data
+      - /var/run/docker.sock:/var/run/docker.sock:ro  # Optional: if you need Docker-in-Docker
+    environment:
+      - RUNNER_NAME=arm64-runner-${HOSTNAME:-local}
+      - RUNNER_WORKDIR=/actions-runner/_work
+    # Uncomment and configure these for automatic setup:
+    # command: ["config", "--url", "https://github.com/YOUR_USERNAME/YOUR_REPO", "--token", "YOUR_TOKEN", "--name", "arm64-runner", "--work", "_work", "--replace"]
+    
+    # For manual configuration, use:
+    # command: ["run"]
+    
+    # For first-time setup, use:
+    command: ["/bin/bash", "-c", "echo 'Container ready. Use: docker exec -it github-actions-runner bash' && tail -f /dev/null"]
+
+volumes:
+  runner-data:
+    driver: local

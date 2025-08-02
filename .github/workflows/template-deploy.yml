@@ -10,7 +10,7 @@ on:
 
 jobs:
   deploy:
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, linux, ARM64, a8bc952bca85]
     strategy:
       matrix:
         environment: ${{ fromJson(inputs.environments) }}
@@ -23,9 +23,36 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
       
-      - name: Deploy to ${{ matrix.environment }}
+      - name: Prepare deployment directory
         run: |
           echo "🚀 Deploying to ${{ matrix.environment }}"
           echo "📊 Database: testdb_${{ matrix.environment }}"
-          sleep 10  # Simulate deployment time
+          
+          # Create deployment directory
+          mkdir -p /tmp/deployments/${{ matrix.environment }}
+          
+      - name: Deploy config artifact
+        run: |
+          # Copy config.yml to deployment location
+          cp test_db/${{ matrix.environment }}/config.yml /tmp/deployments/${{ matrix.environment }}/
+          echo "📦 Config deployed to /tmp/deployments/${{ matrix.environment }}/"
+          
+      - name: Verify deployment
+        run: |
+          echo "🔍 Verifying deployed config for ${{ matrix.environment }}:"
+          echo "----------------------------------------"
+          cat /tmp/deployments/${{ matrix.environment }}/config.yml
+          echo "----------------------------------------"
+          
+      - name: Create deployment artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: deployed-config-${{ matrix.environment }}
+          path: /tmp/deployments/${{ matrix.environment }}/config.yml
+          retention-days: 7
+          
+      - name: Complete deployment
+        run: |
+          sleep 5  # Simulate deployment time
           echo "✅ Deployment complete for ${{ matrix.environment }}"
+          echo "📍 Config available at: /tmp/deployments/${{ matrix.environment }}/config.yml"
